@@ -1,0 +1,5 @@
+0. How many different colors does each format support?
+ - BMP = 8
+ - GIF = 256
+ - JPEG = 16.7M
+ - PNG = 16M
