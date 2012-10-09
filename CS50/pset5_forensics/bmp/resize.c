@@ -3,23 +3,8 @@
  *
  * Computer Science 50
  * Problem Set 5
- * Daniel E. Williams
- * danieleugenewilliams@gmail.com
  *
- * Resizes image files.
- * Created:  September 2, 2012
- * Modified: September 11, 2012
- *
- * Notes: new, resized image means new header info!
- *      : file size, image size, width, and height must change
- *      : need to change both structs
- *
- * TODO: update bi.biWidth: "The width of the bitmap, in pixels."
- * TODO: update bi.biHeight: "The height of the bitmap, in pixels."
- * TODO: update bi.biSizeImage: "The size, in bytes, of the image. This may be set to zero for BI_RGB bitmaps."
- * TODO: write each pixel [n] times
- * TODO: store rgb in array...malloc
- * TODO: write each line [n] times 
+ * Resizes a BMP piece by piece by [n], just because.
  ***************************************************************************/
        
 #include <stdio.h>
@@ -27,18 +12,6 @@
 
 #include "bmp.h"
 
-// Protoypes
-
-void update_biWidth(LONG resize_multiple);
-void update_biHeight(LONG resize_multiple);
-void update_biSizeImage(LONG resize_multiple);
-void resize_image(LONG resize_multiple);
-
-// infile's BITMAPFILEHEADER
-BITMAPFILEHEADER bf;
-
-// infile's BITMAPINFOHEADER
-BITMAPINFOHEADER bi;
 
 int
 main(int argc, char *argv[])
@@ -46,12 +19,12 @@ main(int argc, char *argv[])
     // ensure proper usage
     if (argc != 4)
     {
-        printf("Usage: resize [int] infile outfile\n");
+        printf("Usage: resize [n] infile.bmp outfile.bmp\n");
         return 1;
     }
     
     // resize multiple
-    LONG resize_multiple = atoi(argv[1]);
+    int resize_multiple = atoi(argv[1]);
 
     // remember filenames
     char *infile = argv[2];
@@ -75,11 +48,11 @@ main(int argc, char *argv[])
     }
 
     // read infile's BITMAPFILEHEADER
-    //BITMAPFILEHEADER bf;
+    BITMAPFILEHEADER bf;
     fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
 
     // read infile's BITMAPINFOHEADER
-    //BITMAPINFOHEADER bi;
+    BITMAPINFOHEADER bi;
     fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
 
     // ensure infile is (likely) a 24-bit uncompressed BMP 4.0
@@ -92,19 +65,19 @@ main(int argc, char *argv[])
         return 4;
     }
     
-    // BEGIN UPDATE OF HEADER DATA
+    // START UPDATE HEADER INFO
     
-    // update bi.biWidth
-    update_biWidth(resize_multiple);
+    bf.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + (bi.biSizeImage * resize_multiple);
     
-    // update bi.biHeight
-    update_biHeight(resize_multiple);
+    int biHeight     = bi.biHeight;
+    int biWidth      = bi.biWidth;
     
-    // update bi.SizeImage
-    update_biSizeImage(resize_multiple);
+    bi.biHeight     *= resize_multiple;
+    bi.biWidth      *= resize_multiple;
+    bi.biSizeImage  *= resize_multiple;
+    
+    // END UPDATE HEADER INFO
 
-    // END UPDATE OF HEADER DATA
-    
     // write outfile's BITMAPFILEHEADER
     fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
 
@@ -112,38 +85,48 @@ main(int argc, char *argv[])
     fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
 
     // determine padding for scanlines
-    int padding =  (4 - (bi.biWidth * sizeof(RGBTRIPLE)) % 4) % 4;
+    int padding =  (4 - (biWidth * sizeof(RGBTRIPLE)) % 4) % 4;
+    
+    // determine padding for outfile
+    int outpadding =  (4 - (bi.biWidth * sizeof(RGBTRIPLE)) % 4) % 4;
 
     // iterate over infile's scanlines
-    for (int i = 0, biHeight = abs(bi.biHeight); i < biHeight; i++)
+    for (int i = 0, absbiHeight = abs(biHeight); i < absbiHeight; i++)
     {
-        // iterate over pixels in scanline
-        for (int j = 0; j < bi.biWidth; j++)
+        fpos_t position;
+        fgetpos (inptr, &position);
+        //write scanline [resize_multiple] times
+        for(int m = 0; m < resize_multiple; m++) 
         {
-            // temporary storage
-            RGBTRIPLE triple;
-
-            // read RGB triple from infile
-            fread(&triple, sizeof(RGBTRIPLE), 1, inptr);
-
-            // write RGB triple to outfile
-            //fwrite(&triple, sizeof(RGBTRIPLE), 1, outptr);
+            // fseek back to beginning of scanline if m < resize_multiple
+            if(m < resize_multiple)
+                fsetpos (inptr, &position);
             
-            // write RGB triple to outfile
-            // write pixel [resize_multiple] times across
-            for (int i = 0; i <= resize_multiple; i++)
+            // iterate over pixels in scanline
+            for (int j = 0; j < biWidth; j++)
             {
-                fwrite(&triple, sizeof(RGBTRIPLE), 1, outptr);
+                // temporary storage
+                RGBTRIPLE triple;
+
+                // read RGB triple from infile
+                fread(&triple, sizeof(RGBTRIPLE), 1, inptr);
+                
+                //write RGB [resize_multiple] times
+                for(int n = 0; n < resize_multiple; n++) 
+                {
+                    // write RGB triple to outfile
+                    fwrite(&triple, sizeof(RGBTRIPLE), 1, outptr);
+                }
+                
             }
-            
+
+            // skip over padding, if any
+            fseek(inptr, padding, SEEK_CUR);
+
+            // then add it back (to demonstrate how)
+            for (int k = 0; k < outpadding; k++)
+                fputc(0x00, outptr);
         }
-
-        // skip over padding, if any
-        fseek(inptr, padding, SEEK_CUR);
-
-        // then add it back (to demonstrate how)
-        for (int k = 0; k < padding; k++)
-            fputc(0x00, outptr);
     }
 
     // close infile
@@ -155,31 +138,3 @@ main(int argc, char *argv[])
     // that's all folks
     return 0;
 }
-
-
-// update bi.biWidth
-void
-update_biWidth(LONG resize_multiple)
-{
-    // multiply width by resize multiple
-    bi.biWidth *= resize_multiple;
-}
-
-
-// update bi.biHeight
-void
-update_biHeight(LONG resize_multiple)
-{
-    // multiply height by resize multiple
-    bi.biHeight *= resize_multiple;
-}
-
-
-// update bi.biSizeImage
-void
-update_biSizeImage(LONG resize_multiple)
-{
-    // multiply height by resize multiple
-    bi.biSizeImage *= resize_multiple;
-}
-
