@@ -21,9 +21,6 @@
 
 #include "../bmp/bmp.h"
 
-// prototypes
-int write_jpg(int jpgcount, BYTE jpg[]);
-
 #define RAWCARD "card.raw"
 
 #define RAWSIZE 2421760
@@ -44,6 +41,13 @@ main(int argc, char *argv[])
     
     int index = 0;
     int jpgcount = 0;
+    
+    // jpg filename
+    char *outfile[10];
+    
+    // output file handle
+    FILE *outptr = NULL;
+    
     BYTE chunk[RAWSIZE];
     while(!feof(inptr))
     {
@@ -54,18 +58,47 @@ main(int argc, char *argv[])
         for(int i = index, n = sizeof(chunk); i < n; i++)
         {
             //printf("%x\n", chunk[i]);
-            if(((chunk[i] == 0xe0) || (chunk[i] == 0xe1)) && (chunk[i-1] == 0xff) && (chunk[i-2] == 0xd8) && (chunk[i-3] == 0xff))
+            if(((chunk[i+3] == 0xe0) || (chunk[i+3] == 0xe1)) && (chunk[i+2] == 0xff) && (chunk[i+1] == 0xd8) && (chunk[i] == 0xff))
             {
+                // increment jpg count
                 jpgcount++;
-                printf("%d: %s %d\n",jpgcount, "Found jpg at chunk:", i-3);
                 
+                // print msg to console...found jpg
+                printf("%03d: %s\n",jpgcount, "Found jpg");
+                
+                // set jpg filename
+                sprintf(*outfile,"%03d.jpg", jpgcount);
+                
+                // close outfile file, if open
+                if(outptr != NULL)
+                {
+                    printf ("%s %s", *outfile, "file closed succesfully!\n");
+                    fclose(outptr);
+                }
+                
+                // open new jpg file
+                outptr = fopen(*outfile, "wb");
+                if (outptr == NULL)
+                {
+                    printf("Could not open %s.\n", *outfile);
+                    return 2;
+                }
             }
+        }
+        
+        // if jpg found, write 512 bytes to current file
+        if(outptr != NULL)
+        {
+            fwrite(chunk, sizeof(BYTE), 512, outptr);
         }
     }
     
-
-    
-    //write_jpg(1,chunk);
+    // close outfile file, if open
+    if(outptr != NULL)
+    {
+        printf ("%s %s", *outfile, "file closed succesfully!\n");
+        fclose(outptr);
+    }
     
     // close raw file
     if(inptr != NULL)
@@ -74,33 +107,5 @@ main(int argc, char *argv[])
         fclose(inptr);
     }
 
-    return 0;
-}
-
-int
-write_jpg(int jpgcount, BYTE jpg[])
-{
-    // determine filename
-    char *outfile[10];
-    sprintf(*outfile,"%03d.jpg", jpgcount);
-    
-    FILE *outptr = fopen(*outfile, "wb");
-    if (outptr == NULL)
-    {
-        printf("Could not open %s.\n", *outfile);
-        return 2;
-    }
-    
-    for(int i = 0, n = sizeof(jpg); i < n; i++)
-    {
-        fwrite(&jpg[i], sizeof(BYTE), 1, outptr);
-    }
-    
-    // close outfile file
-    if(outptr != NULL)
-    {
-        printf ("%s %s", *outfile, "file opened and closed succesfully!\n");
-        fclose(outptr);
-    }
     return 0;
 }
