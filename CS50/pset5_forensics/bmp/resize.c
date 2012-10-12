@@ -25,6 +25,13 @@ main(int argc, char *argv[])
     
     // resize multiple
     int resize_multiple = atoi(argv[1]);
+    
+    if (resize_multiple <= 1)
+    {
+        printf("Usage: resize [n] infile.bmp outfile.bmp\n");
+        printf("Usage: [n] must be greater than 1\n");
+        return 1;
+    }
 
     // remember filenames
     char *infile = argv[2];
