@@ -98,7 +98,7 @@ main(int argc, char *argv[])
         //write scanline [resize_multiple] times
         for(int m = 0; m < resize_multiple; m++) 
         {
-            // fseek back to beginning of scanline if m < resize_multiple
+            // fsetpos back to beginning of scanline if m < resize_multiple
             if(m < resize_multiple)
                 fsetpos (inptr, &position);
             
