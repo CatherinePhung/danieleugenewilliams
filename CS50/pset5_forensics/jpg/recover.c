@@ -45,12 +45,22 @@ main(int argc, char *argv[])
     // jpg filename
     char *outfile;
     outfile = calloc (10,sizeof(char));
+    if(outfile == NULL)
+    {
+        printf("Could not allocate memory to outfile...exiting.");
+        return 2;
+    }
     
     // output file handle
     FILE *outptr = NULL;
     
     BYTE *chunk;
     chunk = calloc (RAWSIZE,sizeof(BYTE));
+    if(chunk == NULL)
+    {
+        printf("Could not allocate memory to chunk...exiting.");
+        return 3;
+    }
     while(!feof(inptr))
     {
         fread(chunk, sizeof(BYTE), 512, inptr);
@@ -68,6 +78,11 @@ main(int argc, char *argv[])
                 
                 free(outfile);
                 outfile = calloc (10,sizeof(char));
+                if(chunk == NULL)
+                {
+                    printf("Could not allocate memory to chunk...exiting.");
+                    return 3;
+                }
                 
                 // set jpg filename
                 sprintf(outfile,"%03d.jpg", (char)jpgcount);
@@ -84,7 +99,7 @@ main(int argc, char *argv[])
                 if (outptr == NULL)
                 {
                     printf("Could not open %s.\n", outfile);
-                    return 2;
+                    return 4;
                 }
             }
         }
