@@ -27,15 +27,13 @@
 
 int
 main(int argc, char *argv[])
-{
-    // remember raw file
-    char *infile = RAWCARD;
-    
+{    
     // open raw file 
-    FILE *inptr = fopen(infile, "rb");
+    FILE *inptr = NULL;
+    inptr = fopen(RAWCARD, "rb");
     if (inptr == NULL)
     {
-        printf("Could not open %s.\n", infile);
+        printf("Could not open %s.\n", RAWCARD);
         return 1;
     }
     
@@ -43,22 +41,22 @@ main(int argc, char *argv[])
     int jpgcount = 0;
     
     // jpg filename
-    char *outfile[10];
+    char *outfile;
+    outfile = calloc (10,sizeof(char));
     
     // output file handle
     FILE *outptr = NULL;
     
-    BYTE chunk[RAWSIZE];
+    BYTE *chunk;
+    chunk = calloc (RAWSIZE,sizeof(BYTE));
     while(!feof(inptr))
     {
-        int result = fread(chunk, sizeof(BYTE), 512, inptr);
-        if(result < 0)
-            printf("an error occurred\n");
+        fread(chunk, sizeof(BYTE), 512, inptr);
             
         for(int i = index, n = sizeof(chunk); i < n; i++)
         {
-            //printf("%x\n", chunk[i]);
-            if(((chunk[i+3] == 0xe0) || (chunk[i+3] == 0xe1)) && (chunk[i+2] == 0xff) && (chunk[i+1] == 0xd8) && (chunk[i] == 0xff))
+            // if jpg magic numbers found
+            if(((i+3 < n) && ((chunk[i+3] == 0xe0) || (chunk[i+3] == 0xe1))) && ((i+2 < n) && (chunk[i+2] == 0xff)) && ((i+1 < n) && (chunk[i+1] == 0xd8)) && (chunk[i] == 0xff))
             {
                 // increment jpg count
                 jpgcount++;
@@ -66,21 +64,24 @@ main(int argc, char *argv[])
                 // print msg to console...found jpg
                 printf("%03d: %s\n",jpgcount, "Found jpg");
                 
+                free(outfile);
+                outfile = calloc (10,sizeof(char));
+                
                 // set jpg filename
-                sprintf(*outfile,"%03d.jpg", jpgcount);
+                sprintf(outfile,"%03d.jpg", (char)jpgcount);
                 
                 // close outfile file, if open
                 if(outptr != NULL)
                 {
-                    printf ("%s %s", *outfile, "file closed succesfully!\n");
+                    printf ("%s %s", outfile, "file closed succesfully!\n");
                     fclose(outptr);
                 }
                 
                 // open new jpg file
-                outptr = fopen(*outfile, "wb");
+                outptr = fopen(outfile, "wb");
                 if (outptr == NULL)
                 {
-                    printf("Could not open %s.\n", *outfile);
+                    printf("Could not open %s.\n", outfile);
                     return 2;
                 }
             }
@@ -96,16 +97,19 @@ main(int argc, char *argv[])
     // close outfile file, if open
     if(outptr != NULL)
     {
-        printf ("%s %s", *outfile, "file closed succesfully!\n");
+        printf ("%s %s", outfile, "file closed succesfully!\n");
         fclose(outptr);
     }
     
     // close raw file
     if(inptr != NULL)
     {
-        printf ("%s %s", infile, "file opened and closed succesfully!\n");
+        printf ("%s %s", RAWCARD, "file opened and closed succesfully!\n");
         fclose(inptr);
     }
+    
+    free(chunk);
+    free(outfile);
 
     return 0;
 }
