@@ -1,5 +1,7 @@
 /****************************************************************************
  * recover.c
+ * Daniel Williams
+ * danieleugenewilliams@gmail.com
  *
  * Computer Science 50
  * Problem Set 5
