@@ -26,10 +26,10 @@ main(int argc, char *argv[])
     // resize multiple
     int resize_multiple = atoi(argv[1]);
     
-    if (resize_multiple <= 1)
+    if (resize_multiple < 1 || resize_multiple > 100)
     {
         printf("Usage: resize [n] infile.bmp outfile.bmp\n");
-        printf("Usage: [n] must be greater than 1\n");
+        printf("Usage: [n] must be between 1 and 100\n");
         return 1;
     }
 
