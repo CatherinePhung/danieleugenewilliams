@@ -25,8 +25,6 @@
 
 #define RAWCARD "card.raw"
 
-#define RAWSIZE 2421760
-
 int
 main(int argc, char *argv[])
 {    
@@ -53,6 +51,11 @@ main(int argc, char *argv[])
     
     // output file handle
     FILE *outptr = NULL;
+    
+    // get file size
+    fseek(inptr, 0L, SEEK_END);
+    int RAWSIZE = ftell(inptr);
+    fseek(inptr, 0L, SEEK_SET);
     
     BYTE *chunk;
     chunk = calloc (RAWSIZE,sizeof(BYTE));
